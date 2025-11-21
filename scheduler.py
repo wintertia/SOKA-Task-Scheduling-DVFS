@@ -8,7 +8,7 @@ import sys
 import os
 from dotenv import load_dotenv
 from collections import namedtuple
-from shc_algorithm import stochastic_hill_climb
+from dvfs_algorithm import schedule_with_dvfs
 
 # --- Konfigurasi Lingkungan ---
 
@@ -23,8 +23,7 @@ VM_SPECS = {
 
 VM_PORT = 5000
 DATASET_FILE = 'dataset.txt'
-RESULTS_FILE = 'shc_results.csv'
-SHC_ITERATIONS = 1000
+RESULTS_FILE = 'dvfs_results.csv'
 
 VM = namedtuple('VM', ['name', 'ip', 'cpu_cores', 'ram_gb'])
 Task = namedtuple('Task', ['id', 'name', 'index', 'cpu_load'])
@@ -235,8 +234,8 @@ async def main():
     tasks_dict = {task.id: task for task in tasks}
     vms_dict = {vm.name: vm for vm in vms}
 
-    # 2. Jalankan Algoritma Penjadwalan (SHC)
-    best_assignment = stochastic_hill_climb(tasks, vms, SHC_ITERATIONS)
+    # 2. Jalankan Algoritma Penjadwalan (DVFS)
+    best_assignment = schedule_with_dvfs(tasks, vms)
     
     print("\nPenugasan Tugas Terbaik Ditemukan:")
     for i in range(min(10, len(best_assignment))): # Tampilkan 10 pertama

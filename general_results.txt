@@ -1,0 +1,33 @@
+[HILL CLIMBING]
+Semua eksekusi tugas selesai dalam 23.7514 detik.
+
+Data hasil eksekusi disimpan ke shc_results.csv
+
+--- Hasil ---
+Total Tugas Selesai       : 20
+Makespan (Waktu Total)    : 23.7514 detik
+Throughput                : 0.8421 tugas/detik
+Total CPU Time            : 239.7099 detik
+Total Wait Time           : 74.2408 detik
+Average Start Time (rel)  : 3.7972 detik
+Average Execution Time    : 11.9855 detik
+Average Finish Time (rel) : 15.9178 detik
+Imbalance Degree          : 1.4806
+Resource Utilization (CPU): 67.2831%
+
+[DVFS]
+Semua eksekusi tugas selesai dalam 23.9084 detik.
+
+Data hasil eksekusi disimpan ke dvfs_results.csv
+
+--- Hasil ---
+Total Tugas Selesai       : 20
+Makespan (Waktu Total)    : 23.9084 detik
+Throughput                : 0.8365 tugas/detik
+Total CPU Time            : 271.1928 detik
+Total Wait Time           : 82.5645 detik
+Average Start Time (rel)  : 4.2753 detik
+Average Execution Time    : 13.5596 detik
+Average Finish Time (rel) : 18.5619 detik
+Imbalance Degree          : 1.4880
+Resource Utilization (CPU): 75.6198%

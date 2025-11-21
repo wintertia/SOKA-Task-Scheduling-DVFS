@@ -1,3 +1,15 @@
+# SOKA Task Scheduling (DVFS Algorithm)
+
+## Kelas B Kelompok B
+
+Nama | NRP
+---|---
+Muhammad Faqih Husain | 5027231023
+Kevin Anugerah Faza | 5027231027
+Amoes Noland | 5027231028
+Rafi' Afnaan Fathurrahman | 5027231040
+Azza Farichi Tjahjono | 5027231071
+
 # Pengujian Algoritma Task Scheduler pada Server IT
 
 Repo ini merupakan kode dari server yang digunakan dalam pengujian Task Scheduling pada Server IT serta contoh algoritma scheduler untuk keperluan mata kuliah **Strategi Optimasi Komputasi Awan (SOKA)**
