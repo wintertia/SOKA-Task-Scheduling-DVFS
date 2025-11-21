@@ -31,3 +31,56 @@ Average Execution Time    : 13.5596 detik
 Average Finish Time (rel) : 18.5619 detik
 Imbalance Degree          : 1.4880
 Resource Utilization (CPU): 75.6198%
+
+# New results
+
+[ROUND ROBIN]
+Semua eksekusi tugas selesai dalam 45.0134 detik.
+
+Data hasil eksekusi disimpan ke rr_results.csv
+
+--- Hasil ---
+Total Tugas Selesai       : 20
+Makespan (Waktu Total)    : 45.0134 detik
+Throughput                : 0.4443 tugas/detik
+Total CPU Time            : 269.7061 detik
+Total Wait Time           : 57.0506 detik
+Average Start Time (rel)  : 2.9020 detik
+Average Execution Time    : 13.4853 detik
+Average Finish Time (rel) : 16.3865 detik
+Imbalance Degree          : 0.6525
+Resource Utilization (CPU): 39.9446%
+
+[SHC]
+Semua eksekusi tugas selesai dalam 25.9436 detik.
+
+Data hasil eksekusi disimpan ke shc_results.csv
+
+--- Hasil ---
+Total Tugas Selesai       : 20
+Makespan (Waktu Total)    : 25.9436 detik
+Throughput                : 0.7709 tugas/detik
+Total CPU Time            : 253.4375 detik
+Total Wait Time           : 70.4158 detik
+Average Start Time (rel)  : 3.5750 detik
+Average Execution Time    : 12.6719 detik
+Average Finish Time (rel) : 16.2463 detik
+Imbalance Degree          : 1.2341
+Resource Utilization (CPU): 65.1251%
+
+[DVFS]
+Semua eksekusi tugas selesai dalam 26.1211 detik.
+
+Data hasil eksekusi disimpan ke dvfs_results.csv
+
+--- Hasil ---
+Total Tugas Selesai       : 20
+Makespan (Waktu Total)    : 26.1211 detik
+Throughput                : 0.7657 tugas/detik
+Total CPU Time            : 315.1919 detik
+Total Wait Time           : 81.2703 detik
+Average Start Time (rel)  : 4.1210 detik
+Average Execution Time    : 15.7596 detik
+Average Finish Time (rel) : 19.8792 detik
+Imbalance Degree          : 1.5352
+Resource Utilization (CPU): 80.4436%

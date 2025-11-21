@@ -6,9 +6,12 @@ import csv
 import pandas as pd
 import sys
 import os
+from typing import Callable
 from dotenv import load_dotenv
 from collections import namedtuple
 from dvfs_algorithm import schedule_with_dvfs
+from shc_algorithm import stochastic_hill_climb, Task as ShcTask, VM as ShcVM
+from rr_algorithm import schedule_with_round_robin
 
 # --- Konfigurasi Lingkungan ---
 
@@ -23,10 +26,57 @@ VM_SPECS = {
 
 VM_PORT = 5000
 DATASET_FILE = 'dataset.txt'
-RESULTS_FILE = 'dvfs_results.csv'
+RESULTS_FILE_TEMPLATE = '{}_results.csv'
 
 VM = namedtuple('VM', ['name', 'ip', 'cpu_cores', 'ram_gb'])
 Task = namedtuple('Task', ['id', 'name', 'index', 'cpu_load'])
+SchedulerFn = Callable[[list[Task], list[VM]], dict[int, str]]
+
+# --- Definisi Algoritma Penjadwalan ---
+
+DEFAULT_SHC_ITERATIONS = 1000
+def schedule_with_shc(tasks: list[Task], vms: list[VM], iterations: int = DEFAULT_SHC_ITERATIONS) -> dict[int, str]:
+    """Adaptor untuk menjalankan SHC dengan struktur Task/VM lokal."""
+
+    shc_tasks = [ShcTask(task.id, task.name, task.index, task.cpu_load, 0) for task in tasks]
+    shc_vms = [ShcVM(vm.name, vm.ip, vm.cpu_cores, vm.ram_gb) for vm in vms]
+    return stochastic_hill_climb(shc_tasks, shc_vms, iterations)
+
+ALGORITHM_ORDER = ['dvfs', 'rr', 'shc']
+ALGORITHMS: dict[str, dict[str, object]] = {
+    'dvfs': {
+        'label': 'DVFS (Dynamic Voltage and Frequency Scaling)',
+        'runner': schedule_with_dvfs,
+    },
+    'rr': {
+        'label': 'Round Robin (weighted by CPU cores)',
+        'runner': schedule_with_round_robin,
+    },
+    'shc': {
+        'label': f'Stochastic Hill Climbing ({DEFAULT_SHC_ITERATIONS} iterasi)',
+        'runner': schedule_with_shc,
+    },
+}
+
+
+def prompt_algorithm_choice() -> tuple[str, str, SchedulerFn]:
+    print("\nPilih Algoritma Penjadwalan:")
+    for idx, key in enumerate(ALGORITHM_ORDER, start=1):
+        label = ALGORITHMS[key]['label']
+        print(f"  {idx}. {label}")
+
+    selection = input("Masukkan pilihan [1]: ").strip()
+    try:
+        selected_index = int(selection) - 1 if selection else 0
+    except ValueError:
+        selected_index = 0
+
+    if selected_index < 0 or selected_index >= len(ALGORITHM_ORDER):
+        selected_index = 0
+
+    key = ALGORITHM_ORDER[selected_index]
+    config = ALGORITHMS[key]
+    return key, config['label'], config['runner']  # type: ignore[return-value]
 
 # --- Fungsi Helper & Definisi Task ---
 
@@ -124,7 +174,7 @@ async def execute_task_on_vm(task: Task, vm: VM, client: httpx.AsyncClient,
 
 # --- Fungsi Paska-Proses & Metrik ---
 
-def write_results_to_csv(results_list: list):
+def write_results_to_csv(results_list: list, results_file: str):
     """Menyimpan hasil eksekusi ke file CSV."""
     if not results_list:
         print("Tidak ada hasil untuk ditulis ke CSV.", file=sys.stderr)
@@ -147,13 +197,13 @@ def write_results_to_csv(results_list: list):
     formatted_results.sort(key=lambda item: item['start_time'])
 
     try:
-        with open(RESULTS_FILE, 'w', newline='', encoding='utf-8') as f:
+        with open(results_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=headers)
             writer.writeheader()
             writer.writerows(formatted_results)
-        print(f"\nData hasil eksekusi disimpan ke {RESULTS_FILE}")
+        print(f"\nData hasil eksekusi disimpan ke {results_file}")
     except IOError as e:
-        print(f"Error menulis ke CSV {RESULTS_FILE}: {e}", file=sys.stderr)
+        print(f"Error menulis ke CSV {results_file}: {e}", file=sys.stderr)
 
 def calculate_and_print_metrics(results_list: list, vms: list[VM], total_schedule_time: float):
     try:
@@ -234,8 +284,11 @@ async def main():
     tasks_dict = {task.id: task for task in tasks}
     vms_dict = {vm.name: vm for vm in vms}
 
-    # 2. Jalankan Algoritma Penjadwalan (DVFS)
-    best_assignment = schedule_with_dvfs(tasks, vms)
+    algorithm_key, algorithm_label, scheduler_fn = prompt_algorithm_choice()
+    print(f"\nMenggunakan algoritma: {algorithm_label}")
+
+    # 2. Jalankan Algoritma Penjadwalan
+    best_assignment = scheduler_fn(tasks, vms)
     
     print("\nPenugasan Tugas Terbaik Ditemukan:")
     for i in range(min(10, len(best_assignment))): # Tampilkan 10 pertama
@@ -276,7 +329,8 @@ async def main():
         print(f"\nSemua eksekusi tugas selesai dalam {total_schedule_time:.4f} detik.")
     
     # 5. Simpan Hasil dan Hitung Metrik
-    write_results_to_csv(results_list)
+    results_file = RESULTS_FILE_TEMPLATE.format(algorithm_key)
+    write_results_to_csv(results_list, results_file)
     calculate_and_print_metrics(results_list, vms, total_schedule_time)
 
 if __name__ == "__main__":
