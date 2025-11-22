@@ -42,8 +42,42 @@ def schedule_with_shc(tasks: list[Task], vms: list[VM], iterations: int = DEFAUL
     shc_vms = [ShcVM(vm.name, vm.ip, vm.cpu_cores, vm.ram_gb) for vm in vms]
     return stochastic_hill_climb(shc_tasks, shc_vms, iterations)
 
-ALGORITHM_ORDER = ['dvfs', 'rr', 'shc']
+def schedule_with_fcfs(tasks: list[Task], vms: list[VM]) -> dict[int, str]:
+    """
+    First-Come, First-Served (FCFS).
+    Dalam konteks load balancing, ini mengassign task yang datang (berdasarkan urutan list)
+    ke VM yang memiliki estimasi waktu selesai paling awal (Earliest Available Time).
+    """
+    if not tasks:
+        return {}
+    if not vms:
+        raise ValueError("Daftar VM kosong.")
+
+    assignment = {}
+    # Melacak estimasi waktu selesai untuk setiap VM (load / cores)
+    vm_finish_times = {vm.name: 0.0 for vm in vms}
+    vm_lookup = {vm.name: vm for vm in vms}
+
+    for task in tasks:
+        # Cari VM dengan finish time terkecil saat ini
+        best_vm_name = min(vm_finish_times, key=vm_finish_times.get)
+        
+        assignment[task.id] = best_vm_name
+        
+        # Update estimasi finish time VM tersebut
+        # Rumus sederhana: Time = Load / Cores
+        vm = vm_lookup[best_vm_name]
+        estimated_exec_time = task.cpu_load / vm.cpu_cores
+        vm_finish_times[best_vm_name] += estimated_exec_time
+
+    return assignment
+
+ALGORITHM_ORDER = ['fcfs', 'dvfs', 'rr', 'shc']
 ALGORITHMS: dict[str, dict[str, object]] = {
+    'fcfs': {
+        'label': 'FCFS (First-Come, First-Served / Earliest Available)',
+        'runner': schedule_with_fcfs,
+    },
     'dvfs': {
         'label': 'DVFS (Dynamic Voltage and Frequency Scaling)',
         'runner': schedule_with_dvfs,

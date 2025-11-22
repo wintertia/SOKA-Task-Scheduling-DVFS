@@ -12,4 +12,4 @@ wheels/
 
 # Secret Files :>
 dataset.txt
-result.csv
+*.csv
