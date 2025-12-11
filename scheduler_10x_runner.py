@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import time
+import os
 from typing import Dict, List
 
 import httpx
@@ -20,6 +21,14 @@ METRIC_FIELDS = [
     "average_finish_time",
     "imbalance_degree",
     "resource_utilization",
+]
+
+# Daftar dataset yang akan diproses
+DATASETS = [
+    'dataset.txt',
+    'dataset_random.txt',
+    'dataset_low_high.txt',
+    'dataset_random_stratified.txt'
 ]
 
 
@@ -124,20 +133,20 @@ def average_metrics(metrics_history: List[Dict[str, float]]) -> Dict[str, float]
 
 
 def print_iteration_summary(iteration: int, metrics: Dict[str, float]) -> None:
-    print(f"\nRingkasan Iterasi {iteration}:")
-    print(f"  Makespan              : {metrics['makespan']:.4f} detik")
-    print(f"  Throughput            : {metrics['throughput']:.4f} tugas/detik")
-    print(f"  Total CPU Time        : {metrics['total_cpu_time']:.4f} detik")
-    print(f"  Total Wait Time       : {metrics['total_wait_time']:.4f} detik")
-    print(f"  Avg Start Time (rel)  : {metrics['average_start_time']:.4f} detik")
-    print(f"  Avg Execution Time    : {metrics['average_execution_time']:.4f} detik")
-    print(f"  Avg Finish Time (rel) : {metrics['average_finish_time']:.4f} detik")
-    print(f"  Imbalance Degree      : {metrics['imbalance_degree']:.4f}")
-    print(f"  Resource Utilization  : {metrics['resource_utilization']:.4%}")
+    print(f"\n  Ringkasan Iterasi {iteration}:")
+    print(f"    Makespan              : {metrics['makespan']:.4f} s")
+    print(f"    Avg Execution Time    : {metrics['average_execution_time']:.4f} s")
+    print(f"    Imbalance Degree      : {metrics['imbalance_degree']:.4f}")
+    print(f"    Resource Utilization  : {metrics['resource_utilization']:.4%}")
 
 
-def save_average_metrics_csv(algorithm_key: str, averages: Dict[str, float]) -> str:
-    csv_path = f"{algorithm_key}_10x_results.csv"
+def save_average_metrics_csv(algorithm_key: str, dataset_path: str, averages: Dict[str, float]) -> str:
+    # Ambil nama file tanpa ekstensi (misal: 'dataset_random')
+    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+    
+    # Format nama file: {algoritma}_{dataset}_10x_results.csv
+    csv_path = f"{algorithm_key}_{dataset_name}_10x_results.csv"
+    
     with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(["metric", "average_value"])
@@ -147,34 +156,60 @@ def save_average_metrics_csv(algorithm_key: str, averages: Dict[str, float]) -> 
     return csv_path
 
 
-async def main() -> None:
-    algorithm_key, algorithm_label, scheduler_fn = scheduler.prompt_algorithm_choice()
-    print(f"\nMenjalankan algoritma {algorithm_label} sebanyak {ITERATION_COUNT}x ...")
+async def process_dataset(dataset_path: str, algorithm_key: str, algorithm_label: str, scheduler_fn):
+    print(f"\n{'='*60}")
+    print(f"DATASET: {dataset_path}")
+    print(f"ALGORITMA: {algorithm_label}")
+    print(f"{'='*60}")
 
-    tasks = scheduler.load_tasks(scheduler.DATASET_FILE)
-    if not tasks:
-        print("Tidak ada tugas untuk dieksekusi.")
+    if not os.path.exists(dataset_path):
+        print(f"Error: File dataset '{dataset_path}' tidak ditemukan. Melewati...")
         return
 
+    tasks = scheduler.load_tasks(dataset_path)
+    if not tasks:
+        print("Tidak ada tugas untuk dieksekusi dalam dataset ini.")
+        return
+
+    print(f"Memulai pengujian {ITERATION_COUNT} iterasi untuk {dataset_path} ...")
+    
     metrics_history: List[Dict[str, float]] = []
+    
     for iteration in range(1, ITERATION_COUNT + 1):
-        print(f"\n=== Iterasi {iteration}/{ITERATION_COUNT} dimulai ===")
-        iteration_metrics = await run_single_iteration(algorithm_key, scheduler_fn, tasks)
-        metrics_history.append(iteration_metrics)
-        print_iteration_summary(iteration, iteration_metrics)
+        print(f"\n--- {dataset_path} | Iterasi {iteration}/{ITERATION_COUNT} ---")
+        try:
+            iteration_metrics = await run_single_iteration(algorithm_key, scheduler_fn, tasks)
+            metrics_history.append(iteration_metrics)
+            print_iteration_summary(iteration, iteration_metrics)
+        except Exception as e:
+            print(f"Error pada iterasi {iteration}: {e}")
 
-    averages = average_metrics(metrics_history)
-    csv_path = save_average_metrics_csv(algorithm_key, averages)
+    if metrics_history:
+        averages = average_metrics(metrics_history)
+        csv_path = save_average_metrics_csv(algorithm_key, dataset_path, averages)
 
-    print(f"\nRata-rata metrik dari {ITERATION_COUNT} iterasi:")
-    for field in METRIC_FIELDS:
-        if field in averages:
-            value = averages[field]
-            if field == "resource_utilization":
-                print(f"  {field}: {value:.4%}")
-            else:
-                print(f"  {field}: {value:.4f}")
-    print(f"\nHasil rata-rata disimpan di {csv_path}")
+        print(f"\n>>> Rata-rata Akhir untuk {dataset_path}:")
+        for field in METRIC_FIELDS:
+            if field in averages:
+                value = averages[field]
+                if field == "resource_utilization":
+                    print(f"  {field:<25}: {value:.4%}")
+                else:
+                    print(f"  {field:<25}: {value:.4f}")
+        print(f"\nHasil rata-rata disimpan di: {csv_path}")
+    else:
+        print(f"Gagal mengumpulkan metrik untuk {dataset_path}.")
+
+
+async def main() -> None:
+    # Meminta input algoritma SATU KALI di awal
+    algorithm_key, algorithm_label, scheduler_fn = scheduler.prompt_algorithm_choice()
+    
+    # Loop melalui setiap dataset yang didefinisikan
+    for dataset_path in DATASETS:
+        await process_dataset(dataset_path, algorithm_key, algorithm_label, scheduler_fn)
+        
+    print("\n\n=== Semua eksperimen dataset selesai ===")
 
 
 if __name__ == "__main__":

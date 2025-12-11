@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .env
+venv
 
 # Secret Files :>
-dataset.txt
+dataset*
 *.csv
